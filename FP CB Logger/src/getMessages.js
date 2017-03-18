@@ -49,6 +49,8 @@ var aFullMonthEn = [
 	'December'
 ];
 
+var last_ids = [];
+
 //The url where the logs will be sent
 var url = "";
 
@@ -78,6 +80,7 @@ function messagesToJson(messages, users)
 	var destinataire;
 	var message;
 	var heure;
+	var channel;
 
 	if(users.length > 0)
 	{
@@ -104,6 +107,7 @@ function messagesToJson(messages, users)
 			destinataire = encodeURIComponent(messages[i]['destinataire']);
 			message = encodeURIComponent(messages[i]['message']);
 			heure = encodeURIComponent(messages[i]['heure']);
+			channel = encodeURIComponent(messages[i]['channel']);
 
 			//Creates the json sub-object
 			json += "{";
@@ -111,7 +115,8 @@ function messagesToJson(messages, users)
 			json += "\"expediteur\":\"" + expediteur + "\",";
 			json += "\"destinataire\":\"" + destinataire + "\",";
 			json += "\"message\":\"" + message + "\",";
-			json += "\"heure\":" + heure;
+			json += "\"heure\":" + heure + ",";
+			json += "\"channel\":\"" + channel + "\"";
 			json += "},";
 		}
 		//Deletes the last comma
@@ -252,7 +257,6 @@ function LogUsers(addedNodes)
 
 function LogMessages(addedNodes)
 {
-	console.log("Logging " + addedNodes.length + " messages");
 	var currentdate = new Date();
 	var datetime =    currentdate.getDate() + "/"
 					+ (currentdate.getMonth()+1)  + "/"
@@ -295,7 +299,7 @@ function LogMessages(addedNodes)
 		elem = addedNodes[i];
 
 		//Fixes the date (present on the 2nd HTML child)
-		d = FixDate(elem.children[1].innerText)
+		d = FixDate(elem.getElementsByClassName('date')[0].innerText);
 		message['heure'] = Date.parse(d) / 1000; //ms to s
 
 		//Gets the text before "à" in the first HTML child ("Nightmane à JudgeTheDude :")
@@ -319,14 +323,15 @@ function LogMessages(addedNodes)
 		input = addedNodes[i].outerHTML;
 		var corresp = reg.exec(input);
 		message['cb_id'] = corresp[1];
+		
+		message['channel'] = document.getElementById('channels-list').getElementsByClassName('active')[0].innerText;
 
 		//Adds the message to the messages array
 		messages.push(message);
 	}
 
-	console.log("CB Updated");
 	post_async(url, messagesToJson(messages,[]));
-	console.log("CB Updated Sent");
+	console.log("CB Updated " + addedNodes.length + " Sent");
 }
 
 //Main process function
@@ -376,7 +381,7 @@ function processMessages(){
 		elem = document_root.getElementsByClassName('message')[i];
 
 		//Fixes the date (present on the 2nd HTML child)
-		d = FixDate(elem.children[1].innerText)
+		d = FixDate(elem.getElementsByClassName('date')[0].innerText);
 		message['heure'] = Date.parse(d) / 1000; //ms to s
 
 		//Gets the text before "à" in the first HTML child ("Nightmane à JudgeTheDude :")
@@ -400,14 +405,17 @@ function processMessages(){
 		input = document_root.getElementsByClassName('message')[i].outerHTML;
 		var corresp = reg.exec(input);
 		message['cb_id'] = corresp[1];
+		
+		message['channel'] = document_root.getElementById('channels-list').getElementsByClassName('active')[0].innerText;
 
 		//Adds the message to the messages array
 		messages.push(message);
 	}
 	var users = [];
-
-	console.log("Sending POST request");
+	
+	var output = messagesToJson(messages,users);
 	post_async(url, messagesToJson(messages,users));
+	//console.log(output);
 	console.log("Request sent");
 	//console.log(messagesToJson(messages, users));
 }
